@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Countdown Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    h2 {
+      margin-top: 24px;
+      font-size: 18px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 4px;
+    }
+
+    .section {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #111;
+      border-radius: 6px;
+      border: 1px solid #222;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    label {
+      font-size: 14px;
+    }
+
+    input[type="time"],
+    input[type="number"],
+    input[type="text"],
+    select {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 14px;
+    }
+
+    input[type="color"] {
+      background: #222;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0;
+      width: 40px;
+      height: 24px;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.1);
+      margin-right: 4px;
+    }
+
+    input[type="file"] {
+      font-size: 13px;
+    }
+
+    .small-input {
+      width: 4em;
+    }
+
+    .buttons {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #666;
+    }
+
+    .hint {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .preset-row input[type="text"] {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .footer {
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #333;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Countdown Settings</h1>
+
+    <!-- TIMER MODE -->
+    <h2>Timer</h2>
+    <div class="section">
+      <div class="row">
+        <label><input type="radio" name="mode" id="modeDuration" value="duration"> Duration</label>
+        <label><input type="radio" name="mode" id="modeTime" value="time"> To time</label>
+      </div>
+
+      <div class="row" id="durationRow">
+        <label>Hours
+          <input type="number" id="durHours" class="small-input" min="0" max="99">
+        </label>
+        <label>Minutes
+          <input type="number" id="durMinutes" class="small-input" min="0" max="59">
+        </label>
+        <label>Seconds
+          <input type="number" id="durSeconds" class="small-input" min="0" max="59">
+        </label>
+      </div>
+
+      <div class="row" id="timeRow">
+        <label>Target time
+          <input type="time" id="targetTime" step="1">
+        </label>
+        <span class="hint">If the time has passed today, it will count down to tomorrow.</span>
+      </div>
+    </div>
+
+    <!-- APPEARANCE -->
+    <h2>Appearance</h2>
+    <div class="section">
+      <div class="row">
+        <label>Background
+          <input type="color" id="bgColor">
+        </label>
+        <label>Text colour
+          <input type="color" id="textColor">
+        </label>
+      </div>
+
+      <div class="row">
+        <label>Timer size (vh)
+          <input type="number" id="timerSize" class="small-input" min="5" max="40">
+        </label>
+        <span class="hint">Higher = bigger timer text. Uses viewport height units.</span>
+      </div>
+
+      <div class="row">
+        <label>Fade to black delay (seconds)
+          <input type="number" id="fadeToBlackSeconds" class="small-input" min="0" max="600">
+        </label>
+        <span class="hint">Time after the timer hits 0 before the screen fades to black.</span>
+      </div>
+
+      <div class="row">
+        <label>Background image
+          <input type="file" id="bgImageFile" accept="image/*">
+          <input type="hidden" id="bgImageDataUrl">
+        </label>
+        <button type="button" id="clearBgImageBtn">Clear image</button>
+        <span class="hint">Choose a local image to fill the background. Stored only in this browser.</span>
+      </div>
+
+      <div class="row">
+        <label>
+          <input type="checkbox" id="centerBlockEnabled">
+          Show centre block background
+        </label>
+        <span class="hint">Turn off to make the timer background fully transparent.</span>
+      </div>
+
+      <div class="row">
+        <label>Show status line
+          <input type="checkbox" id="showStatus">
+        </label>
+        <span class="hint">Status shows "Running", "Paused", etc. Turn off for super clean display.</span>
+      </div>
+    </div>
+
+    <!-- MESSAGE -->
+    <h2>Message</h2>
+    <div class="section">
+      <div class="row">
+        <label>Top message
+          <input type="text" id="messageText" placeholder="e.g. Service starts in">
+        </label>
+      </div>
+      <div class="row">
+        <label>Message size (vh)
+          <input type="number" id="messageSize" class="small-input" min="2" max="15">
+        </label>
+        <span class="hint">Applies the same text colour as the timer.</span>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <h2>Alerts</h2>
+    <div class="section">
+      <div class="row">
+        <label><input type="checkbox" id="alert1Enabled"> Enable Alert 1</label>
+      </div>
+      <div class="row">
+        <label>Trigger at
+          <input type="number" id="alert1Minutes" class="small-input" min="0" max="999"> min
+          <input type="number" id="alert1Seconds" class="small-input" min="0" max="59"> sec remaining
+        </label>
+      </div>
+      <div class="row">
+        <label>Alert 1 background
+          <input type="color" id="alert1Bg">
+        </label>
+        <label>Alert 1 text colour
+          <input type="color" id="alert1Text">
+        </label>
+      </div>
+      <div class="hint">
+        Example: set to 10:00 with red background + white text for a solid "10 minutes left" warning.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <label><input type="checkbox" id="alert2Enabled"> Enable Alert 2</label>
+      </div>
+      <div class="row">
+        <label>Trigger at
+          <input type="number" id="alert2Minutes" class="small-input" min="0" max="999"> min
+          <input type="number" id="alert2Seconds" class="small-input" min="0" max="59"> sec remaining
+        </label>
+      </div>
+      <div class="row">
+        <label>Alert 2 background
+          <input type="color" id="alert2Bg">
+        </label>
+        <label>Alert 2 text colour
+          <input type="color" id="alert2Text">
+        </label>
+      </div>
+      <div class="hint">
+        Example: use this for a more urgent stage, like 5:00 left, with different colours.
+      </div>
+    </div>
+
+    <!-- PRESETS -->
+    <h2>Presets</h2>
+    <div class="section">
+      <div class="preset-row">
+        <label>Preset name
+          <input type="text" id="presetName" placeholder="e.g. 10 min notice">
+        </label>
+        <button id="savePresetBtn">Save preset</button>
+      </div>
+      <div class="preset-row">
+        <label>Presets
+          <select id="presetSelect">
+            <option value="">(none)</option>
+          </select>
+        </label>
+        <button id="loadPresetBtn">Load</button>
+        <button id="deletePresetBtn">Delete</button>
+      </div>
+      <div class="hint">
+        Presets store all settings above (mode, duration/time, colours, alerts, message, sizes, background image, fade
+        time).
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Settings and presets are saved automatically on the server.</div>
+      <button id="howToUseBtn">How to use</button>
+      <button id="resetDefaultsBtn">Reset to defaults</button>
+      <button id="openDisplayBtn">Open countdown (opens in new tab)</button>
+    </div>
+  </div>
+
+  <script>
+    const API_HEADERS = { 'Content-Type': 'application/json' };
+    let presetsCache = [];
+
+    const modeDurationRadio = document.getElementById('modeDuration');
+    const modeTimeRadio = document.getElementById('modeTime');
+    const durationRow = document.getElementById('durationRow');
+    const timeRow = document.getElementById('timeRow');
+
+    const durHoursInput = document.getElementById('durHours');
+    const durMinutesInput = document.getElementById('durMinutes');
+    const durSecondsInput = document.getElementById('durSeconds');
+    const targetTimeInput = document.getElementById('targetTime');
+
+    const bgColorInput = document.getElementById('bgColor');
+    const textColorInput = document.getElementById('textColor');
+    const timerSizeInput = document.getElementById('timerSize');
+    const fadeToBlackSecondsInput = document.getElementById('fadeToBlackSeconds');
+    const showStatusInput = document.getElementById('showStatus');
+    const bgImageFileInput = document.getElementById('bgImageFile');
+    const centerBlockEnabledInput = document.getElementById('centerBlockEnabled');
+    const bgImageDataUrlInput = document.getElementById('bgImageDataUrl');
+    const clearBgImageBtn = document.getElementById('clearBgImageBtn');
+
+    const messageTextInput = document.getElementById('messageText');
+    const messageSizeInput = document.getElementById('messageSize');
+
+    const alert1EnabledInput = document.getElementById('alert1Enabled');
+    const alert1MinutesInput = document.getElementById('alert1Minutes');
+    const alert1SecondsInput = document.getElementById('alert1Seconds');
+    const alert1BgInput = document.getElementById('alert1Bg');
+    const alert1TextInput = document.getElementById('alert1Text');
+
+    const alert2EnabledInput = document.getElementById('alert2Enabled');
+    const alert2MinutesInput = document.getElementById('alert2Minutes');
+    const alert2SecondsInput = document.getElementById('alert2Seconds');
+    const alert2BgInput = document.getElementById('alert2Bg');
+    const alert2TextInput = document.getElementById('alert2Text');
+
+    const presetNameInput = document.getElementById('presetName');
+    const presetSelect = document.getElementById('presetSelect');
+    const savePresetBtn = document.getElementById('savePresetBtn');
+    const loadPresetBtn = document.getElementById('loadPresetBtn');
+    const deletePresetBtn = document.getElementById('deletePresetBtn');
+
+    const howToUseBtn = document.getElementById('howToUseBtn');
+    const openDisplayBtn = document.getElementById('openDisplayBtn');
+    const resetDefaultsBtn = document.getElementById('resetDefaultsBtn');
+
+    function defaultSettings() {
+      return {
+        mode: 'duration',
+        durHours: '0',
+        durMinutes: '5',
+        durSeconds: '0',
+        targetTime: '',
+        bgColor: '#000000',
+        textColor: '#ffffff',
+        timerSize: 20,
+        fadeToBlackSeconds: 5,
+        backgroundImageDataUrl: '',
+        centerBlockEnabled: true,
+        showStatus: false,
+        messageText: '',
+        messageSize: 4,
+        alert1Enabled: false,
+        alert1Minutes: 10,
+        alert1Seconds: 0,
+        alert1Bg: '#880000',
+        alert1Text: '#ffffff',
+        alert2Enabled: false,
+        alert2Minutes: 5,
+        alert2Seconds: 0,
+        alert2Bg: '#ff0000',
+        alert2Text: '#ffffff'
+      };
+    }
+
+    function applySettingsToForm(s) {
+      if (s.mode === 'time') {
+        modeTimeRadio.checked = true;
+        modeDurationRadio.checked = false;
+      } else {
+        modeDurationRadio.checked = true;
+        modeTimeRadio.checked = false;
+      }
+      updateModeVisibility();
+
+      durHoursInput.value = s.durHours;
+      durMinutesInput.value = s.durMinutes;
+      durSecondsInput.value = s.durSeconds;
+      targetTimeInput.value = s.targetTime;
+
+      bgColorInput.value = s.bgColor;
+      textColorInput.value = s.textColor;
+      timerSizeInput.value = s.timerSize;
+      fadeToBlackSecondsInput.value = s.fadeToBlackSeconds;
+      showStatusInput.checked = !!s.showStatus;
+
+      bgImageDataUrlInput.value = s.backgroundImageDataUrl || '';
+      clearBgImageBtn.disabled = !bgImageDataUrlInput.value;
+      centerBlockEnabledInput.checked = !!s.centerBlockEnabled;
+
+      messageTextInput.value = s.messageText;
+      messageSizeInput.value = s.messageSize;
+
+      alert1EnabledInput.checked = !!s.alert1Enabled;
+      alert1MinutesInput.value = s.alert1Minutes;
+      alert1SecondsInput.value = s.alert1Seconds;
+      alert1BgInput.value = s.alert1Bg;
+      alert1TextInput.value = s.alert1Text;
+
+      alert2EnabledInput.checked = !!s.alert2Enabled;
+      alert2MinutesInput.value = s.alert2Minutes;
+      alert2SecondsInput.value = s.alert2Seconds;
+      alert2BgInput.value = s.alert2Bg;
+      alert2TextInput.value = s.alert2Text;
+    }
+
+    function getCurrentSettingsFromForm() {
+      return {
+        mode: modeTimeRadio.checked ? 'time' : 'duration',
+        durHours: durHoursInput.value || '0',
+        durMinutes: durMinutesInput.value || '0',
+        durSeconds: durSecondsInput.value || '0',
+        targetTime: targetTimeInput.value || '',
+        bgColor: bgColorInput.value || '#000000',
+        textColor: textColorInput.value || '#ffffff',
+        timerSize: Number(timerSizeInput.value || '20'),
+        fadeToBlackSeconds: Math.max(0, Number(fadeToBlackSecondsInput.value || '5')),
+        backgroundImageDataUrl: bgImageDataUrlInput.value || '',
+        centerBlockEnabled: !!centerBlockEnabledInput.checked,
+        showStatus: !!showStatusInput.checked,
+        messageText: messageTextInput.value || '',
+        messageSize: Number(messageSizeInput.value || '4'),
+        alert1Enabled: !!alert1EnabledInput.checked,
+        alert1Minutes: Number(alert1MinutesInput.value || '0'),
+        alert1Seconds: Number(alert1SecondsInput.value || '0'),
+        alert1Bg: alert1BgInput.value || '#880000',
+        alert1Text: alert1TextInput.value || '#ffffff',
+        alert2Enabled: !!alert2EnabledInput.checked,
+        alert2Minutes: Number(alert2MinutesInput.value || '0'),
+        alert2Seconds: Number(alert2SecondsInput.value || '0'),
+        alert2Bg: alert2BgInput.value || '#ff0000',
+        alert2Text: alert2TextInput.value || '#ffffff'
+      };
+    }
+
+    async function saveSettings() {
+      const s = getCurrentSettingsFromForm();
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: API_HEADERS,
+          body: JSON.stringify({ settings: s })
+        });
+      } catch (e) {
+        console.error('Failed to save settings', e);
+      }
+    }
+
+    async function loadSettings() {
+      let s = defaultSettings();
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.settings) {
+            s = Object.assign(defaultSettings(), data.settings);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load settings', e);
+      }
+      applySettingsToForm(s);
+    }
+
+    async function resetSettingsToDefaults() {
+      const s = defaultSettings();
+      applySettingsToForm(s);
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: API_HEADERS,
+          body: JSON.stringify({ settings: s })
+        });
+      } catch (e) {
+        console.error('Failed to reset settings to defaults', e);
+      }
+    }
+
+    function updateModeVisibility() {
+      const mode = modeTimeRadio.checked ? 'time' : 'duration';
+      if (mode === 'time') {
+        timeRow.style.display = 'flex';
+        durationRow.style.display = 'none';
+      } else {
+        timeRow.style.display = 'none';
+        durationRow.style.display = 'flex';
+      }
+    }
+
+    // Presets
+    function loadPresetsIntoSelect() {
+      presetSelect.innerHTML = '<option value="">(none)</option>';
+      presetsCache.forEach((p, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx.toString();
+        opt.textContent = p.name;
+        presetSelect.appendChild(opt);
+      });
+    }
+
+    async function refreshPresetsFromServer() {
+      try {
+        const res = await fetch('/api/presets');
+        if (res.ok) {
+          const data = await res.json();
+          presetsCache = Array.isArray(data.presets) ? data.presets : [];
+        }
+      } catch (e) {
+        console.error('Failed to load presets', e);
+      }
+      loadPresetsIntoSelect();
+    }
+
+    async function persistPresets() {
+      try {
+        await fetch('/api/presets', {
+          method: 'POST',
+          headers: API_HEADERS,
+          body: JSON.stringify({ presets: presetsCache })
+        });
+      } catch (e) {
+        console.error('Failed to save presets', e);
+      }
+    }
+
+    async function savePreset() {
+      const name = presetNameInput.value.trim();
+      if (!name) {
+        alert('Please enter a preset name.');
+        return;
+      }
+      const current = getCurrentSettingsFromForm();
+      const existingIndex = presetsCache.findIndex(p => p.name === name);
+      if (existingIndex >= 0) {
+        presetsCache[existingIndex].settings = current;
+      } else {
+        presetsCache.push({ name, settings: current });
+      }
+      await persistPresets();
+      loadPresetsIntoSelect();
+      alert('Preset saved.');
+    }
+
+    async function loadPreset() {
+      const idx = presetSelect.value;
+      if (idx === '') return;
+      const p = presetsCache[Number(idx)];
+      if (!p) return;
+      applySettingsToForm(Object.assign(defaultSettings(), p.settings));
+      await saveSettings();
+    }
+
+    async function deletePreset() {
+      const idx = presetSelect.value;
+      if (idx === '') return;
+      const p = presetsCache[Number(idx)];
+      if (!p) return;
+      if (!confirm(`Delete preset "${p.name}"?`)) return;
+      presetsCache.splice(Number(idx), 1);
+      await persistPresets();
+      loadPresetsIntoSelect();
+    }
+
+    // Event wiring
+    [
+      modeDurationRadio, modeTimeRadio,
+      durHoursInput, durMinutesInput, durSecondsInput,
+      targetTimeInput,
+      bgColorInput, textColorInput, timerSizeInput, fadeToBlackSecondsInput, centerBlockEnabledInput, showStatusInput,
+      messageTextInput, messageSizeInput,
+      alert1EnabledInput, alert1MinutesInput, alert1SecondsInput,
+      alert1BgInput, alert1TextInput,
+      alert2EnabledInput, alert2MinutesInput, alert2SecondsInput,
+      alert2BgInput, alert2TextInput
+    ].forEach(el => {
+      el.addEventListener('change', () => {
+        if (el === modeDurationRadio || el === modeTimeRadio) {
+          updateModeVisibility();
+        }
+        saveSettings();
+      });
+      if (el.tagName === 'INPUT' && el.type === 'text') {
+        el.addEventListener('input', saveSettings);
+      }
+    });
+
+    savePresetBtn.addEventListener('click', savePreset);
+    loadPresetBtn.addEventListener('click', loadPreset);
+    deletePresetBtn.addEventListener('click', deletePreset);
+
+    openDisplayBtn.addEventListener('click', () => {
+      // Make sure latest settings are saved before opening display
+      saveSettings();
+      window.open('/display', '_blank');
+    });
+
+    howToUseBtn.addEventListener('click', () => {
+      // Make sure latest settings are saved before opening display
+      saveSettings();
+      window.location.replace('/help');
+    });
+
+    resetDefaultsBtn.addEventListener('click', resetSettingsToDefaults);
+
+    bgImageFileInput.addEventListener('change', () => {
+      const file = bgImageFileInput.files && bgImageFileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        bgImageDataUrlInput.value = reader.result;
+        clearBgImageBtn.disabled = !bgImageDataUrlInput.value;
+        saveSettings();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    clearBgImageBtn.addEventListener('click', () => {
+      bgImageDataUrlInput.value = '';
+      bgImageFileInput.value = '';
+      clearBgImageBtn.disabled = true;
+      saveSettings();
+    });
+
+    // Init
+    (async () => {
+      await loadSettings();
+      await refreshPresetsFromServer();
+    })();
+  </script>
+</body>
+
+</html>

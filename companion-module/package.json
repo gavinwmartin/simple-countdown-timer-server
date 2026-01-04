@@ -1,0 +1,12 @@
+{
+  "name": "companion-module-countdown-timer",
+  "version": "0.1.0",
+  "description": "Bitfocus Companion module for the simple countdown timer display",
+  "main": "src/index.js",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@companion-module/base": "^1.11.2",
+    "got": "^12.6.1"
+  }
+}

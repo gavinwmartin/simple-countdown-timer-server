@@ -1,0 +1,14 @@
+{
+  "name": "simple-countdown-timer",
+  "version": "1.0.0",
+  "description": "Countdown timer display with optional Companion control server",
+  "private": true,
+  "scripts": {
+    "start": "node control-server.js",
+    "companion:build": "cd companion-module && npm install"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.1"
+  }
+}

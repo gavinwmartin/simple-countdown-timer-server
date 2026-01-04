@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Countdown Display</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.4s ease;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #111;
+      border-bottom: 1px solid #333;
+      font-size: 12px;
+      color: #aaa;
+      user-select: none;
+    }
+
+    .top-bar .buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .top-bar button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .top-bar button:hover {
+      background: #555;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .display-wrapper {
+      text-align: center;
+      padding: 10px 20px;
+      border-radius: 8px;
+      background-color: #000;
+      transition: background-color 0.4s ease;
+    }
+
+    .message {
+      font-size: 4vh;
+      margin-bottom: 10px;
+      transition: opacity 0.4s ease;
+    }
+
+    .display {
+      font-size: 20vh;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      transition: color 0.4s ease, opacity 0.4s ease;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .status {
+      font-size: 14px;
+      opacity: 0.7;
+      margin-top: 6px;
+      transition: opacity 2s ease;
+    }
+
+    /* GLOBAL FADE-TO-BLACK */
+    body.fade-out {
+      background-color: #000 !important;
+      background-image: none !important;
+    }
+    body.fade-out .display,
+    body.fade-out .message,
+    body.fade-out .status {
+      opacity: 0;
+    }
+    body.fade-out .display-wrapper {
+      background-color: #000 !important;
+    }
+
+    /* Hide cursor when idle */
+    body.hide-cursor {
+      cursor: none;
+    }
+
+    /* Hide top bar when in page fullscreen */
+    body.fullscreen-active .top-bar {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div>Countdown Display</div>
+    <div class="buttons">
+      <button id="settingsBtn">Settings</button>
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+      <button id="fullscreenBtn">Fullscreen</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="display-wrapper" id="displayWrapper">
+      <div class="message" id="message"></div>
+      <div class="display" id="display">00:00:00</div>
+      <div class="status" id="status">Idle</div>
+    </div>
+  </div>
+
+  <script>
+    const displayWrapper = document.getElementById('displayWrapper');
+    const displayEl = document.getElementById('display');
+    const messageEl = document.getElementById('message');
+    const statusEl  = document.getElementById('status');
+
+    const settingsBtn  = document.getElementById('settingsBtn');
+    const startBtn  = document.getElementById('startBtn');
+    const pauseBtn  = document.getElementById('pauseBtn');
+    const resetBtn  = document.getElementById('resetBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+    let currentSettings   = null;
+    let targetTimestamp   = null;
+    let remainingMs       = 0;
+    let intervalId        = null;
+    let isRunning         = false;
+    let wasStarted        = false;
+    let fadeTimeout       = null;
+
+    // Hide cursor after 5s
+    let cursorTimeout = null;
+    function resetCursorHideTimer() {
+      document.body.classList.remove('hide-cursor');
+      if (cursorTimeout) clearTimeout(cursorTimeout);
+      cursorTimeout = setTimeout(() => {
+        document.body.classList.add('hide-cursor');
+      }, 5000);
+    }
+    ['mousemove','mousedown','keydown','touchstart'].forEach(ev => {
+      document.addEventListener(ev, resetCursorHideTimer, { passive: true });
+    });
+    resetCursorHideTimer();
+
+    function defaultSettings() {
+      return {
+        mode: 'duration',
+        durHours: '0',
+        durMinutes: '5',
+        durSeconds: '0',
+        targetTime: '',
+        bgColor: '#000000',
+        textColor: '#ffffff',
+        timerSize: 20,
+        fadeToBlackSeconds: 5,
+        backgroundImageDataUrl: '',
+        centerBlockEnabled: true,
+        showStatus: false,
+        messageText: '',
+        messageSize: 4,
+        alert1Enabled: false,
+        alert1Minutes: 10,
+        alert1Seconds: 0,
+        alert1Bg: '#880000',
+        alert1Text: '#ffffff',
+        alert2Enabled: false,
+        alert2Minutes: 5,
+        alert2Seconds: 0,
+        alert2Bg: '#ff0000',
+        alert2Text: '#ffffff'
+      };
+    }
+
+    async function loadSettings() {
+      let s = defaultSettings();
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.settings) {
+            s = Object.assign(defaultSettings(), data.settings);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load settings from server, using defaults', err);
+      }
+      currentSettings = s;
+      applySettingsToDisplay();
+      updateDisplayFromSettingsInitial();
+    }
+
+    function applySettingsToDisplay() {
+      if (!currentSettings) return;
+
+      // Base background + image
+      document.body.style.backgroundColor = currentSettings.bgColor;
+      if (currentSettings.centerBlockEnabled) {
+        displayWrapper.style.backgroundColor = currentSettings.bgColor;
+      } else {
+        displayWrapper.style.backgroundColor = 'transparent';
+      }
+
+      if (currentSettings.backgroundImageDataUrl) {
+        document.body.style.backgroundImage = `url(${currentSettings.backgroundImageDataUrl})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+      } else {
+        document.body.style.backgroundImage = '';
+      }
+
+      // Base text colours
+      displayEl.style.color = currentSettings.textColor;
+      messageEl.style.color = currentSettings.textColor;
+      statusEl.style.color = currentSettings.textColor;
+
+      displayEl.style.fontSize = (currentSettings.timerSize || 20) + 'vh';
+      messageEl.style.fontSize = (currentSettings.messageSize || 4) + 'vh';
+
+      if (currentSettings.messageText) {
+        messageEl.textContent = currentSettings.messageText;
+        messageEl.style.display = 'block';
+      } else {
+        messageEl.textContent = '';
+        messageEl.style.display = 'none';
+      }
+
+      statusEl.style.display = currentSettings.showStatus ? 'block' : 'none';
+    }
+
+    // Apply alert colours based on remaining time
+    function applyAlertColours(msRemaining) {
+      if (!currentSettings) return;
+
+      const baseBg = currentSettings.bgColor;
+      const baseText = currentSettings.textColor;
+
+      let bg   = baseBg;
+      let text = baseText;
+
+      const secRemaining = Math.floor(msRemaining / 1000);
+
+      const t1 = Number(currentSettings.alert1Minutes) * 60 +
+                 Number(currentSettings.alert1Seconds);
+      const t2 = Number(currentSettings.alert2Minutes) * 60 +
+                 Number(currentSettings.alert2Seconds);
+
+      if (currentSettings.alert2Enabled && t2 > 0 && secRemaining <= t2) {
+        bg = currentSettings.alert2Bg;
+        text = currentSettings.alert2Text;
+      } else if (currentSettings.alert1Enabled && t1 > 0 && secRemaining <= t1) {
+        bg = currentSettings.alert1Bg;
+        text = currentSettings.alert1Text;
+      }
+
+      // Apply colours (doesn't touch backgroundImage)
+      document.body.style.backgroundColor  = bg;
+      if (currentSettings.centerBlockEnabled) {
+        displayWrapper.style.backgroundColor = bg;
+      } else {
+        displayWrapper.style.backgroundColor = 'transparent';
+      }
+      displayEl.style.color = text;
+      messageEl.style.color = text;
+      statusEl.style.color = text;
+    }
+
+    function clearFade() {
+      if (fadeTimeout) clearTimeout(fadeTimeout);
+      fadeTimeout = null;
+      document.body.classList.remove('fade-out');
+    }
+
+    function formatTime(ms) {
+      ms = Math.max(ms, 0);
+      const totalSeconds = Math.floor(ms / 1000);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      const pad = n => String(n).padStart(2,'0');
+      return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
+
+    function updateDisplay(ms) {
+      displayEl.textContent = formatTime(ms);
+    }
+
+    function calculateTargetTimestampFromDuration() {
+      const hours = parseInt(currentSettings.durHours, 10)   || 0;
+      const minutes = parseInt(currentSettings.durMinutes, 10) || 0;
+      const seconds = parseInt(currentSettings.durSeconds, 10) || 0;
+      const totalMs = ((hours * 60 + minutes) * 60 + seconds) * 1000;
+      const now = Date.now();
+      return now + totalMs;
+    }
+
+    function calculateTargetTimestampFromTime() {
+      const now = new Date();
+      if (!currentSettings.targetTime) {
+        return Date.now();
+      }
+      const [h, m, s] = currentSettings.targetTime.split(':').map(v => parseInt(v, 10) || 0);
+      const target = new Date(now);
+      target.setHours(h, m, s || 0, 0);
+      if (target.getTime() <= now.getTime()) {
+        target.setDate(target.getDate() + 1);
+      }
+      return target.getTime();
+    }
+
+    function toSettings() {
+      window.open('/countdown/', '_blank');
+    }
+
+    function startCountdown() {
+      if (!currentSettings) loadSettings();
+
+      if (!wasStarted) {
+        if (currentSettings.mode === 'time') {
+          targetTimestamp = calculateTargetTimestampFromTime();
+        } else {
+          targetTimestamp = calculateTargetTimestampFromDuration();
+        }
+        wasStarted = true;
+      } else if (remainingMs > 0) {
+        targetTimestamp = Date.now() + remainingMs;
+      }
+
+      if (intervalId) clearInterval(intervalId);
+      clearFade();
+      document.body.classList.remove('fade-out');
+
+      isRunning = true;
+      statusEl.textContent = 'Running';
+
+      intervalId = setInterval(tick, 200);
+      tick();
+    }
+
+    function pauseCountdown() {
+      if (!isRunning) return;
+      isRunning = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      const now = Date.now();
+      if (targetTimestamp != null) {
+        remainingMs = Math.max(targetTimestamp - now, 0);
+      }
+      statusEl.textContent = 'Paused';
+      clearFade();
+    }
+
+    function resetCountdown() {
+      isRunning = false;
+      wasStarted = false;
+      remainingMs = 0;
+      targetTimestamp = null;
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      statusEl.textContent = 'Idle';
+      clearFade();
+      loadSettings();
+      updateDisplayFromSettingsInitial();
+    }
+
+    function updateDisplayFromSettingsInitial() {
+      if (!currentSettings) return;
+      if (currentSettings.mode === 'time') {
+        const target = calculateTargetTimestampFromTime();
+        const now = Date.now();
+        const diff = target - now;
+        updateDisplay(diff);
+        applyAlertColours(diff);
+      } else {
+        const hours = parseInt(currentSettings.durHours, 10)   || 0;
+        const minutes = parseInt(currentSettings.durMinutes, 10) || 0;
+        const seconds = parseInt(currentSettings.durSeconds, 10) || 0;
+        const totalMs = ((hours * 60 + minutes) * 60 + seconds) * 1000;
+        updateDisplay(totalMs);
+        applyAlertColours(totalMs);
+      }
+    }
+
+    function onFinished() {
+      updateDisplay(0);
+      applyAlertColours(0);
+      statusEl.textContent = 'Finished';
+
+      stopCountdown(false);
+
+      clearFade();
+
+      const fadeSeconds = currentSettings && typeof currentSettings.fadeToBlackSeconds === 'number'
+        ? currentSettings.fadeToBlackSeconds
+        : 5;
+      const fadeMs = Math.max(0, fadeSeconds) * 1000;
+
+      fadeTimeout = setTimeout(() => {
+        document.body.classList.add('fade-out');
+      }, fadeMs);
+    }
+
+    function tick() {
+      if (!isRunning || targetTimestamp == null) return;
+      const now = Date.now();
+      const diff = targetTimestamp - now;
+      if (diff <= 0) {
+        onFinished();
+        return;
+      }
+      remainingMs = diff;
+      updateDisplay(diff);
+      applyAlertColours(diff);
+    }
+
+    function stopCountdown(updateStatus = true) {
+      isRunning = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      if (updateStatus) {
+        statusEl.textContent = 'Stopped';
+      }
+    }
+
+    // Remote control support (opt-in so the timer can run independently)
+    const REMOTE_CONTROL_KEY = 'countdownRemoteControlEnabled';
+
+    const controlActions = {
+      start: startCountdown,
+      pause: pauseCountdown,
+      reset: resetCountdown,
+      stop: () => stopCountdown(true),
+      fullscreen: toggleFullscreen,
+    };
+
+    async function refreshSettingsFromServer(newSettings) {
+      currentSettings = Object.assign(defaultSettings(), newSettings || {});
+      applySettingsToDisplay();
+      updateDisplayFromSettingsInitial();
+    }
+
+    function handleControlMessage(event) {
+      try {
+        const data = JSON.parse(event.data);
+        if (!data) return;
+
+        if (data.type === 'settings' && data.settings) {
+          refreshSettingsFromServer(data.settings);
+        } else if (data.type === 'action' && data.action && controlActions[data.action]) {
+          controlActions[data.action]();
+        }
+      } catch (err) {
+        console.warn('Invalid control message', err);
+      }
+    }
+
+    function remoteControlEnabled() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('remote')) {
+        const enabled = params.get('remote') !== '0';
+        localStorage.setItem(REMOTE_CONTROL_KEY, enabled ? '1' : '0');
+        return enabled;
+      }
+      return localStorage.getItem(REMOTE_CONTROL_KEY) === '1';
+    }
+
+    function connectControlSocket() {
+      if (!remoteControlEnabled()) return;
+
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const url = `${protocol}://${window.location.host}/control`;
+      let socket;
+
+      try {
+        socket = new WebSocket(url);
+      } catch (err) {
+        console.warn('Unable to connect to control socket', err);
+        return;
+      }
+
+      socket.addEventListener('message', handleControlMessage);
+      socket.addEventListener('close', () => {
+        setTimeout(connectControlSocket, 2000);
+      });
+      socket.addEventListener('error', () => {
+        socket.close();
+      });
+    }
+
+    // Fullscreen helpers
+    function isFullscreen() {
+      return !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+    }
+
+    function updateFullscreenClass() {
+      document.body.classList.toggle('fullscreen-active', isFullscreen());
+    }
+
+    function toggleFullscreen() {
+      if (!isFullscreen()) {
+        const el = document.documentElement;
+        if (el.requestFullscreen)            el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+        else if (el.msRequestFullscreen)     el.msRequestFullscreen();
+      } else {
+        if (document.exitFullscreen)            document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        else if (document.mozCancelFullScreen)  document.mozCancelFullScreen();
+        else if (document.msExitFullscreen)     document.msExitFullscreen();
+      }
+    }
+
+    document.addEventListener('fullscreenchange', updateFullscreenClass);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenClass);
+    document.addEventListener('mozfullscreenchange', updateFullscreenClass);
+    document.addEventListener('MSFullscreenChange', updateFullscreenClass);
+
+    // Button wiring
+    settingsBtn.addEventListener('click', toSettings);
+    startBtn.addEventListener('click', startCountdown);
+    pauseBtn.addEventListener('click', pauseCountdown);
+    resetBtn.addEventListener('click', resetCountdown);
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    // Keyboard shortcuts: space=start/pause, r=reset, f=fullscreen toggle
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isRunning) pauseCountdown(); else startCountdown();
+      } else if (e.key === 'r' || e.key === 'R') {
+        resetCountdown();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    });
+
+    // Init
+    loadSettings();
+    updateFullscreenClass();
+    connectControlSocket();
+  </script>
+</body>
+</html>
