@@ -4,7 +4,7 @@
 
 The countdown timer runs as a small server-based app. Settings and presets are stored centrally on the server and shared between any connected settings or display pages.
 
-This is based of the original HTML only version of the countdown timer but adapted to be used with Bitfocus Companion.  [gavinwmartin/simple-countdown-timer-html](https://github.com/gavinwmartin/simple-countdown-timer-html).
+This is based of the original [HTML only version](https://github.com/gavinwmartin/simple-countdown-timer-html) of the countdown timer but adapted to be used with Bitfocus Companion.
 
 ## Setup
 
